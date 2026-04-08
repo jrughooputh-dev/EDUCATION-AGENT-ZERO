@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ZERO — Candlestick Bible</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:#0a0a0a;--bg2:#111111;--bg3:#1a1a1a;
+    --border:#2a2a2a;--border2:#333333;
+    --text:#e8e6e0;--text2:#9a9890;--text3:#5a5856;
+    --gold:#d4a840;--gold2:#f0c060;
+    --green:#4a9a6a;--green2:#5ab87a;
+    --green-bg:rgba(74,154,106,0.1);
+    --red:#c05050;--red2:#d86060;
+    --red-bg:rgba(192,80,80,0.1);
+    --amber:#c8882a;--amber-bg:rgba(200,136,42,0.12);
+    --blue:#4a7ab0;
+    --mono:'Space Mono',monospace;--sans:'DM Sans',sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14px;line-height:1.6;-webkit-font-smoothing:antialiased;}
+  .header{border-bottom:1px solid var(--border);padding:16px 18px 12px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:var(--bg);z-index:100;}
+  .logo{font-family:var(--mono);font-size:16px;font-weight:700;color:var(--gold);letter-spacing:0.08em;}
+  .logo span{color:var(--text3);font-size:10px;display:block;letter-spacing:0.12em;margin-top:1px;}
+  .nav{display:flex;border-bottom:1px solid var(--border);overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;}
+  .nav::-webkit-scrollbar{display:none;}
+  .nav-btn{font-family:var(--mono);font-size:10px;letter-spacing:0.07em;padding:11px 14px;border:none;background:none;color:var(--text3);cursor:pointer;white-space:nowrap;border-bottom:2px solid transparent;transition:all 0.15s;text-transform:uppercase;}
+  .nav-btn:hover{color:var(--text2);}
+  .nav-btn.active{color:var(--gold);border-bottom-color:var(--gold);}
+  .panel{display:none;padding:14px 14px 32px;max-width:840px;margin:0 auto;}
+  .panel.active{display:block;}
+  .section-label{font-family:var(--mono);font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:var(--text3);margin-bottom:10px;margin-top:4px;}
+  .candle-card{background:var(--bg2);border:1px solid var(--border);border-radius:8px;margin-bottom:7px;overflow:hidden;}
+  .candle-card.bull{border-left:3px solid var(--green);}
+  .candle-card.bear{border-left:3px solid var(--red);}
+  .candle-card.neut{border-left:3px solid var(--amber);}
+  .candle-card.cont{border-left:3px solid var(--blue);}
+  .candle-header{display:flex;align-items:center;gap:9px;padding:10px 12px;cursor:pointer;user-select:none;}
+  .candle-type{font-family:var(--mono);font-size:9px;font-weight:700;padding:2px 6px;border-radius:3px;letter-spacing:0.05em;min-width:36px;text-align:center;}
+  .type-bull{background:var(--green-bg);color:var(--green2);}
+  .type-bear{background:var(--red-bg);color:var(--red2);}
+  .type-neut{background:var(--amber-bg);color:var(--amber);}
+  .type-cont{background:rgba(74,122,176,0.12);color:var(--blue);}
+  .candle-name{font-size:13px;font-weight:500;flex:1;}
+  .candle-candles{font-family:var(--mono);font-size:9px;color:var(--text3);}
+  .candle-chevron{color:var(--text3);font-size:10px;transition:transform 0.2s;}
+  .candle-card.open .candle-chevron{transform:rotate(90deg);}
+  .candle-body{display:none;padding:0 12px 12px;border-top:1px solid var(--border);}
+  .candle-card.open .candle-body{display:block;}
+  .candle-body-inner{padding-top:10px;}
+  .body-grid{display:grid;grid-template-columns:120px 1fr;gap:12px;align-items:start;}
+  @media(max-width:500px){.body-grid{grid-template-columns:90px 1fr;gap:8px;}}
+  .svg-panel{background:var(--bg3);border-radius:6px;padding:8px;display:flex;align-items:center;justify-content:center;}
+  .info-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+  @media(max-width:460px){.info-grid{grid-template-columns:1fr;}}
+  .info-block{background:var(--bg3);border-radius:6px;padding:9px 11px;}
+  .info-label{font-family:var(--mono);font-size:9px;letter-spacing:0.09em;text-transform:uppercase;color:var(--text3);margin-bottom:4px;}
+  .info-text{font-size:12px;color:var(--text2);line-height:1.55;}
+  .next-box{background:var(--bg3);border-radius:6px;padding:9px 11px;border-left:2px solid var(--gold);margin-top:8px;}
+  .next-label{font-family:var(--mono);font-size:9px;letter-spacing:0.09em;text-transform:uppercase;color:var(--gold);margin-bottom:4px;}
+  .next-text{font-size:12px;color:var(--gold2);line-height:1.55;}
+  .stat-row{display:flex;gap:7px;margin-top:8px;}
+  .stat-box{flex:1;background:var(--bg3);border-radius:6px;padding:7px 9px;text-align:center;}
+  .stat-val{font-family:var(--mono);font-size:14px;font-weight:700;}
+  .stat-val.green{color:var(--green2);}
+  .stat-val.red{color:var(--red2);}
+  .stat-val.amber{color:var(--amber);}
+  .stat-name{font-size:10px;color:var(--text3);margin-top:1px;}
+  .search-box{display:flex;gap:7px;margin-bottom:12px;flex-wrap:wrap;}
+  .search-input{flex:1;min-width:140px;background:var(--bg2);border:1px solid var(--border2);border-radius:6px;padding:8px 11px;font-family:var(--sans);font-size:13px;color:var(--text);outline:none;}
+  .search-input:focus{border-color:var(--gold);}
+  .filter-btn{font-family:var(--mono);font-size:9px;letter-spacing:0.06em;padding:8px 11px;background:var(--bg2);border:1px solid var(--border);color:var(--text3);border-radius:6px;cursor:pointer;text-transform:uppercase;transition:all 0.15s;white-space:nowrap;}
+  .filter-btn:hover{color:var(--text);border-color:var(--text3);}
+  .filter-btn.active{background:var(--bg3);color:var(--gold);border-color:var(--gold);}
+  .count-label{font-family:var(--mono);font-size:10px;color:var(--text3);margin-bottom:9px;}
+  .quick-ref-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+  @media(max-width:480px){.quick-ref-grid{grid-template-columns:1fr;}}
+  .quick-card{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:12px 13px;}
+  .quick-card.bull{border-top:2px solid var(--green);}
+  .quick-card.bear{border-top:2px solid var(--red);}
+  .quick-card.neut{border-top:2px solid var(--amber);}
+  .quick-card.cont{border-top:2px solid var(--blue);}
+  .quick-title{font-size:12px;font-weight:500;margin-bottom:6px;}
+  .quick-list{list-style:none;}
+  .quick-list li{font-size:11px;color:var(--text2);padding:2px 0 2px 12px;position:relative;}
+  .quick-list li::before{content:'—';position:absolute;left:0;color:var(--text3);font-family:var(--mono);}
+  .footer{border-top:1px solid var(--border);padding:14px 16px;text-align:center;font-family:var(--mono);font-size:10px;color:var(--text3);letter-spacing:0.08em;margin-top:20px;}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo">ZERO <span>CANDLESTICK BIBLE · 35 PATTERNS WITH DIAGRAMS</span></div>
+  <div style="font-family:var(--mono);font-size:10px;color:var(--text3);text-align:right;">NINTH PROTOCOL<br>APR 2026</div>
+</div>
+
+<nav class="nav">
+  <button class="nav-btn active" onclick="showPanel('all',this)">All Patterns</button>
+  <button class="nav-btn" onclick="showPanel('quick',this)">Quick Ref</button>
+  <button class="nav-btn" onclick="showPanel('guide',this)">How to Read</button>
+</nav>
+
+<div id="panel-all" class="panel active">
+  <div class="search-box">
+    <input class="search-input" id="search" placeholder="Search patterns..." oninput="buildCards()">
+    <button class="filter-btn active" id="f-all" onclick="setFilter('all',this)">All</button>
+    <button class="filter-btn" id="f-bull" onclick="setFilter('bull',this)">Bull</button>
+    <button class="filter-btn" id="f-bear" onclick="setFilter('bear',this)">Bear</button>
+    <button class="filter-btn" id="f-neut" onclick="setFilter('neut',this)">Neutral</button>
+    <button class="filter-btn" id="f-cont" onclick="setFilter('cont',this)">Continue</button>
+  </div>
+  <div class="count-label" id="count-label">Showing 35 patterns</div>
+  <div id="cards-container"></div>
+</div>
+
+<div id="panel-quick" class="panel">
+  <div class="section-label" style="margin-bottom:12px;">At a glance — tap a name to jump to it</div>
+  <div class="quick-ref-grid">
+    <div class="quick-card bull">
+      <div class="quick-title" style="color:var(--green2);">Bullish Reversal</div>
+      <ul class="quick-list">
+        <li>Hammer</li><li>Inverted Hammer</li><li>Bullish Engulfing</li>
+        <li>Piercing Line</li><li>Morning Star</li><li>Morning Doji Star</li>
+        <li>Three White Soldiers</li><li>Bullish Harami</li><li>Bullish Harami Cross</li>
+        <li>Tweezer Bottom</li><li>Three Outside Up</li><li>Three Inside Up</li>
+        <li>Dragonfly Doji</li><li>Bullish Marubozu</li><li>Bullish Belt Hold</li>
+      </ul>
+    </div>
+    <div class="quick-card bear">
+      <div class="quick-title" style="color:var(--red2);">Bearish Reversal</div>
+      <ul class="quick-list">
+        <li>Shooting Star</li><li>Hanging Man</li><li>Bearish Engulfing</li>
+        <li>Dark Cloud Cover</li><li>Evening Star</li><li>Evening Doji Star</li>
+        <li>Three Black Crows</li><li>Bearish Harami</li><li>Bearish Harami Cross</li>
+        <li>Tweezer Top</li><li>Three Outside Down</li><li>Three Inside Down</li>
+        <li>Gravestone Doji</li><li>Bearish Marubozu</li><li>Bearish Belt Hold</li>
+      </ul>
+    </div>
+    <div class="quick-card neut">
+      <div class="quick-title" style="color:var(--amber);">Indecision</div>
+      <ul class="quick-list">
+        <li>Doji</li><li>Long-Legged Doji</li><li>Spinning Top</li><li>High Wave</li>
+      </ul>
+    </div>
+    <div class="quick-card cont">
+      <div class="quick-title" style="color:var(--blue);">Continuation</div>
+      <ul class="quick-list">
+        <li>Rising Three Methods</li><li>Falling Three Methods</li>
+        <li>Upside Tasuki Gap</li><li>Downside Tasuki Gap</li>
+      </ul>
+    </div>
+  </div>
+  <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:13px 15px;margin-top:12px;">
+    <div class="section-label">The ZERO Rule</div>
+    <div style="font-size:13px;color:var(--text2);line-height:1.7;">Pattern + Key Level + 5/5 Score + 15M Sweep = Signal. A pattern at a random location is noise. The same pattern at your planned entry zone after a liquidity sweep is edge.</div>
+  </div>
+</div>
+
+<div id="panel-guide" class="panel">
+  <div class="section-label">Anatomy of a candle</div>
+  <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:16px;margin-bottom:12px;">
+    <svg width="100%" viewBox="0 0 340 170">
+      <line x1="65" y1="18" x2="65" y2="48" stroke="#5ab87a" stroke-width="2"/>
+      <rect x="50" y="48" width="30" height="72" fill="#5ab87a" rx="2"/>
+      <line x1="65" y1="120" x2="65" y2="148" stroke="#5ab87a" stroke-width="2"/>
+      <line x1="68" y1="28" x2="105" y2="28" stroke="#5a5856" stroke-width="0.8" stroke-dasharray="3 2"/>
+      <text x="108" y="32" fill="#5a5856" font-size="11" font-family="Space Mono">HIGH</text>
+      <line x1="80" y1="53" x2="105" y2="53" stroke="#5ab87a" stroke-width="0.8" stroke-dasharray="3 2"/>
+      <text x="108" y="57" fill="#5ab87a" font-size="11" font-family="Space Mono">CLOSE (bull)</text>
+      <line x1="80" y1="116" x2="105" y2="116" stroke="#9a9890" stroke-width="0.8" stroke-dasharray="3 2"/>
+      <text x="108" y="120" fill="#9a9890" font-size="11" font-family="Space Mono">OPEN (bull)</text>
+      <line x1="68" y1="143" x2="105" y2="143" stroke="#5a5856" stroke-width="0.8" stroke-dasharray="3 2"/>
+      <text x="108" y="147" fill="#5a5856" font-size="11" font-family="Space Mono">LOW</text>
+      <text x="50" y="165" fill="#5ab87a" font-size="10" font-family="Space Mono">BULLISH</text>
+
+      <line x1="230" y1="18" x2="230" y2="48" stroke="#d86060" stroke-width="2"/>
+      <rect x="215" y="48" width="30" height="72" fill="#d86060" rx="2"/>
+      <line x1="230" y1="120" x2="230" y2="148" stroke="#d86060" stroke-width="2"/>
+      <line x1="213" y1="53" x2="178" y2="53" stroke="#9a9890" stroke-width="0.8" stroke-dasharray="3 2"/>
+      <text x="60" y="57" fill="#9a9890" font-size="11" font-family="Space Mono" text-anchor="end">OPEN (bear)</text>
+      <line x1="213" y1="116" x2="178" y2="116" stroke="#d86060" stroke-width="0.8" stroke-dasharray="3 2"/>
+      <text x="60" y="120" fill="#d86060" font-size="11" font-family="Space Mono" text-anchor="end">CLOSE (bear)</text>
+      <text x="209" y="165" fill="#d86060" font-size="10" font-family="Space Mono">BEARISH</text>
+    </svg>
+    <div style="font-size:12px;color:var(--text2);line-height:1.6;margin-top:4px;">Green = close above open (buyers won). Red = close below open (sellers won). Wicks show how far price was rejected before closing.</div>
+  </div>
+  <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:13px 15px;margin-bottom:10px;">
+    <div class="section-label">Three questions before acting on any pattern</div>
+    <div style="font-size:13px;color:var(--text2);line-height:1.8;">
+      <div style="margin-bottom:5px;"><span style="color:var(--gold);font-family:var(--mono);font-size:11px;">01 </span>Where is it forming? At a key level or in empty space?</div>
+      <div style="margin-bottom:5px;"><span style="color:var(--gold);font-family:var(--mono);font-size:11px;">02 </span>Does the higher timeframe agree? Daily + weekly aligned?</div>
+      <div><span style="color:var(--gold);font-family:var(--mono);font-size:11px;">03 </span>What does the next candle do? Always wait for confirmation.</div>
+    </div>
+  </div>
+  <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:13px 15px;">
+    <div class="section-label">Reliability tiers</div>
+    <div style="font-size:12px;color:var(--text2);line-height:1.8;">
+      <span style="color:var(--green2);">HIGH</span> — Engulfing, Morning/Evening Star, Three White Soldiers, Three Black Crows. Multi-candle, self-confirming.<br>
+      <span style="color:var(--amber);">MEDIUM</span> — Hammer, Shooting Star, Pin Bar, Piercing Line. Need next-candle confirmation.<br>
+      <span style="color:var(--text3);">CAUTION</span> — Doji, Spinning Top, Harami. Indecision only — never enter on these alone.
+    </div>
+  </div>
+</div>
+
+<div class="footer">ZERO CANDLESTICK BIBLE · 35 Patterns · April 2026 · Ninth Protocol<br>Confirm every pattern with ZERO indicator panel + key level confluence</div>
+
+<script>
+// ── SVG DIAGRAM FUNCTIONS ──────────────────────────────────────────────
+// Each returns an SVG string. All use hardcoded hex (dark theme).
+const G='#5ab87a', R='#d86060', GD='#1a2e1a', RD='#2e1a1a', ND='#1e1e12', NK='#c8882a';
+const W='#e8e6e0', DIM='#5a5856', LINE='#333333';
+
+function wick(x,y1,y2){return `<line x1="${x}" y1="${y1}" x2="${x}" y2="${y2}" stroke="${DIM}" stroke-width="1.5"/>`;}
+function body(x,y,w,h,col){return `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${col}" rx="1.5"/>`;}
+function doji(x,y,h,wy1,wy2){
+  return `<line x1="${x}" y1="${wy1}" x2="${x}" y2="${wy2}" stroke="${DIM}" stroke-width="1.5"/>
+  <rect x="${x-8}" y="${y}" width="16" height="${h<2?2:h}" fill="${NK}" rx="1"/>`;
+}
+function label(x,y,txt,col){col=col||DIM;return `<text x="${x}" y="${y}" fill="${col}" font-size="9" font-family="Space Mono" text-anchor="middle">${txt}</text>`;}
+
+const svgs = {
+  // ── BULLISH ──
+  "Hammer": ()=>{
+    return `<svg viewBox="0 0 80 100" width="80" height="100">
+      ${wick(40,10,35)}${body(32,35,16,18,G)}${wick(40,53,85)}
+      ${label(40,97,'HAMMER',G)}</svg>`;
+  },
+  "Inverted Hammer": ()=>{
+    return `<svg viewBox="0 0 80 100" width="80" height="100">
+      ${wick(40,15,52)}${body(32,52,16,18,G)}${wick(40,70,80)}
+      ${label(40,97,'INV. HAMMER',G)}</svg>`;
+  },
+  "Bullish Engulfing": ()=>{
+    return `<svg viewBox="0 0 80 100" width="80" height="100">
+      ${wick(30,20,30)}${body(22,30,16,30,R)}${wick(30,60,70)}
+      ${wick(52,15,25)}${body(43,25,18,55,G)}${wick(52,80,88)}
+      ${label(40,97,'BULL ENGULF',G)}</svg>`;
+  },
+  "Piercing Line": ()=>{
+    return `<svg viewBox="0 0 80 100" width="80" height="100">
+      ${wick(28,15,22)}${body(20,22,16,50,R)}${wick(28,72,82)}
+      ${wick(52,40,48)}${body(43,48,16,30,G)}${wick(52,78,86)}
+      ${label(40,97,'PIERCING',G)}</svg>`;
+  },
+  "Morning Star": ()=>{
+    return `<svg viewBox="0 0 110 100" width="100" height="100">
+      ${wick(20,10,18)}${body(12,18,16,40,R)}${wick(20,58,66)}
+      ${wick(55,52,58)}${body(49,58,12,12,NK)}${wick(55,70,76)}
+      ${wick(90,20,28)}${body(81,28,18,42,G)}${wick(90,70,78)}
+      ${label(55,97,'MORNING STAR',G)}</svg>`;
+  },
+  "Morning Doji Star": ()=>{
+    return `<svg viewBox="0 0 110 100" width="100" height="100">
+      ${wick(20,10,18)}${body(12,18,16,40,R)}${wick(20,58,66)}
+      ${doji(55,60,2,48,76)}
+      ${wick(90,20,28)}${body(81,28,18,42,G)}${wick(90,70,78)}
+      ${label(55,97,'MORNING DOJI',G)}</svg>`;
+  },
+  "Three White Soldiers": ()=>{
+    return `<svg viewBox="0 0 110 100" width="100" height="100">
+      ${wick(22,42,48)}${body(14,48,16,32,G)}${wick(22,80,86)}
+      ${wick(55,28,34)}${body(47,34,16,38,G)}${wick(55,72,78)}
+      ${wick(88,14,20)}${body(80,20,16,44,G)}${wick(88,64,70)}
+      ${label(55,97,'3 WHITE SOLDIERS',G)}</svg>`;
+  },
+  "Bullish Harami": ()=>{
+    return `<svg viewBox="0 0 80 100" width="80" height="100">
+      ${wick(28,12,20)}${body(20,20,16,52,R)}${wick(28,72,82)}
+      ${wick(52,30,36)}${body(44,36,16,24,G)}${wick(52,60,66)}
+      ${label(40,97,'BULL HARAMI',G)}</svg>`;
+  },
+  "Bullish Harami Cross": ()=>{
+    return `<svg viewBox="0 0 80 100" width="80" height="100">
+      ${wick(28,12,20)}${body(20,20,16,52,R)}${wick(28,72,82)}
+      ${doji(52,44,2,30,62)}
+      ${label(40,97,'HARAMI CROSS',G)}</svg>`;
+  },
+  "Tweezer Bottom": ()=>{
+    return `<svg viewBox="0 0 80 100" width="80" height="100">
+      ${wick(28,15,25)}${body(20,25,16,28,R)}${wick(28,53,72)}
+      ${wick(52,22,30)}${body(44,30,16,24,G)}${wick(52,54,72)}
+      <line x1="15" y1="72" x2="65" y2="72" stroke="${NK}" stroke-width="0.8" stroke-dasharray="3 2"/>
+      ${label(40,97,'TWEEZER BTM',G)}</svg>`;
+  },
+  "Three Outside Up": ()=>{
+    return `<svg viewBox="0 0 120 100" width="100" height="100">
+      ${wick(22,28,35)}${body(14,35,16,28,R)}${wick(22,63,70)}
+      ${wick(55,18,25)}${body(46,25,18,50,G)}${wick(55,75,82)}
+      ${wick(90,10,17)}${body(82,17,16,44,G)}${wick(90,61,68)}
+      ${label(58,97,'3 OUTSIDE UP',G)}</svg>`;
+  },
+  "Three Inside Up": ()=>{
+    return `<svg viewBox="0 0 110 100" width="100" height="100">
+      ${wick(20,12,20)}${body(12,20,16,48,R)}${wick(20,68,76)}
+      ${wick(55,32,38)}${body(47,38,16,22,G)}${wick(55,60,66)}
+      ${wick(88,15,22)}${body(80,22,16,44,G)}${wick(88,66,73)}
+      ${label(55,97,'3 INSIDE UP',G)}</svg>`;
+  },
+  "Dragonfly Doji": ()=>{
+    return `<svg viewBox="0 0 80 100" width="80" height="100">
+      ${wick(40,30,35)}${body(32,35,16,2,NK)}${wick(40,37,82)}
+      ${label(40,97,'DRAGONFLY',G)}</svg>`;
+  },
+  "Bullish Marubozu": ()=>{
+    return `<svg viewBox="0 0 80 100" width="80" height="100">
+      ${body(32,18,16,66,G)}
+      ${label(40,97,'MARUBOZU',G)}</svg>`;
+  },
+  "Bullish Belt Hold": ()=>{
+    return `<svg viewBox="0 0 80 100" width="80" height="100">
+      ${body(32,20,16,58,G)}${wick(40,78,83)}
+      ${label(40,97,'BELT HOLD',G)}</svg>`;
+  },
+  // ── BEARISH ──
+  "Shooting Star": ()=>{
+    return `<svg viewBox="0 0 80 100" width="80" height="100">
+      ${wick(40,15,48)}${body(32,48,16,18,R)}${wick(40,66,78)}
+      ${label(40,97,'SHOOT STAR',R)}</svg>`;
+  },
+  "Hanging Man": ()=>{
+    return `<svg viewBox="0 0 80 100" width="80" height="100">
+      ${wick(40,12,30)}${body(32,30,16,18,R)}${wick(40,48,82)}
+      ${label(40,97,'HANGING MAN',R)}</svg>`;
+  },
+  "Bearish Engulfing": ()=>{
+    return `<svg viewBox="0 0 80 100" width="80" height="100">
+      ${wick(28,22,30)}${body(20,30,16,30,G)}${wick(28,60,68)}
+      ${wick(52,14,22)}${body(43,22,18,56,R)}${wick(52,78,86)}
+      ${label(40,97,'BEAR ENGULF',R)}</svg>`;
+  },
+  "Dark Cloud Cover": ()=>{
+    return `<svg viewBox="0 0 80 100" width="80" height="100">
+      ${wick(28,14,22)}${body(20,22,16,50,G)}${wick(28,72,80)}
+      ${wick(52,18,26)}${body(43,26,16,36,R)}${wick(52,62,72)}
+      ${label(40,97,'DARK CLOUD',R)}</svg>`;
+  },
+  "Evening Star": ()=>{
+    return `<svg viewBox="0 0 110 100" width="100" height="100">
+      ${wick(20,20,28)}${body(12,28,16,40,G)}${wick(20,68,76)}
+      ${wick(55,14,20)}${body(49,20,12,12,NK)}${wick(55,32,38)}
+      ${wick(90,34,42)}${body(81,42,18,42,R)}${wick(90,84,90)}
+      ${label(55,97,'EVENING STAR',R)}</svg>`;
+  },
+  "Evening Doji Star": ()=>{
+    return `<svg viewBox="0 0 110 100" width="100" height="100">
+      ${wick(20,20,28)}${body(12,28,16,40,G)}${wick(20,68,76)}
+      ${doji(55,20,2,10,34)}
+      ${wick(90,34,42)}${body(81,42,18,42,R)}${wick(90,84,90)}
+      ${label(55,97,'EVENING DOJI',R)}</svg>`;
+  },
+  "Three Black Crows": ()=>{
+    return `<svg viewBox="0 0 110 100" width="100" height="100">
+      ${wick(22,14,20)}${body(14,20,16,34,R)}${wick(22,54,60)}
+      ${wick(55,28,34)}${body(47,34,16,38,R)}${wick(55,72,78)}
+      ${wick(88,44,50)}${body(80,50,16,32,R)}${wick(88,82,88)}
+      ${label(55,97,'3 BLACK CROWS',R)}</svg>`;
+  },
+  "Bearish Harami": ()=>{
+    return `<svg viewBox="0 0 80 100" width="80" height="100">
+      ${wick(28,12,20)}${body(20,20,16,52,G)}${wick(28,72,80)}
+      ${wick(52,30,36)}${body(44,36,16,24,R)}${wick(52,60,66)}
+      ${label(40,97,'BEAR HARAMI',R)}</svg>`;
+  },
+  "Bearish Harami Cross": ()=>{
+    return `<svg viewBox="0 0 80 100" width="80" height="100">
+      ${wick(28,12,20)}${body(20,20,16,52,G)}${wick(28,72,80)}
+      ${doji(52,44,2,30,62)}
+      ${label(40,97,'BEAR HARAMI X',R)}</svg>`;
+  },
+  "Tweezer Top": ()=>{
+    return `<svg viewBox="0 0 80 100" width="80" height="100">
+      ${wick(28,15,28)}${body(20,28,16,26,G)}${wick(28,54,72)}
+      ${wick(52,15,28)}${body(44,28,16,24,R)}${wick(52,52,72)}
+      <line x1="15" y1="15" x2="65" y2="15" stroke="${NK}" stroke-width="0.8" stroke-dasharray="3 2"/>
+      ${label(40,97,'TWEEZER TOP',R)}</svg>`;
+  },
+  "Three Outside Down": ()=>{
+    return `<svg viewBox="0 0 120 100" width="100" height="100">
+      ${wick(22,20,27)}${body(14,27,16,28,G)}${wick(22,55,62)}
+      ${wick(55,14,22)}${body(46,22,18,50,R)}${wick(55,72,80)}
+      ${wick(90,62,70)}${body(82,70,16,14,R)}${wick(90,84,90)}
+      ${label(58,97,'3 OUTSIDE DN',R)}</svg>`;
+  },
+  "Three Inside Down": ()=>{
+    return `<svg viewBox="0 0 110 100" width="100" height="100">
+      ${wick(20,12,20)}${body(12,20,16,48,G)}${wick(20,68,76)}
+      ${wick(55,32,38)}${body(47,38,16,22,R)}${wick(55,60,66)}
+      ${wick(88,15,22)}${body(80,22,16,44,R)}${wick(88,66,73)}
+      ${label(55,97,'3 INSIDE DN',R)}</svg>`;
+  },
+  "Gravestone Doji": ()=>{
+    return `<svg viewBox="0 0 80 100" width="80" height="100">
+      ${wick(40,15,58)}${body(32,58,16,2,NK)}${wick(40,60,66)}
+      ${label(40,97,'GRAVESTONE',R)}</svg>`;
+  },
+  "Bearish Marubozu": ()=>{
+    return `<svg viewBox="0 0 80 100" width="80" height="100">
+      ${body(32,18,16,66,R)}
+      ${label(40,97,'MARUBOZU',R)}</svg>`;
+  },
+  "Bearish Belt Hold": ()=>{
+    return `<svg viewBox="0 0 80 100" width="80" height="100">
+      ${wick(40,15,20)}${body(32,20,16,58,R)}
+      ${label(40,97,'BELT HOLD',R)}</svg>`;
+  },
+  // ── NEUTRAL ──
+  "Doji": ()=>{
+    return `<svg viewBox="0 0 80 100" width="80" height="100">
+      ${doji(40,42,2,15,82)}
+      ${label(40,97,'DOJI',NK)}</svg>`;
+  },
+  "Long-Legged Doji": ()=>{
+    return `<svg viewBox="0 0 80 100" width="80" height="100">
+      ${doji(40,46,2,10,86)}
+      ${label(40,97,'LONG-LEG DOJI',NK)}</svg>`;
+  },
+  "Spinning Top": ()=>{
+    return `<svg viewBox="0 0 80 100" width="80" height="100">
+      ${wick(40,15,35)}${body(32,35,16,28,NK)}${wick(40,63,82)}
+      ${label(40,97,'SPINNING TOP',NK)}</svg>`;
+  },
+  "High Wave": ()=>{
+    return `<svg viewBox="0 0 80 100" width="80" height="100">
+      ${wick(40,10,38)}${body(32,38,16,22,NK)}${wick(40,60,88)}
+      ${label(40,97,'HIGH WAVE',NK)}</svg>`;
+  },
+  // ── CONTINUATION ──
+  "Rising Three Methods": ()=>{
+    return `<svg viewBox="0 0 130 100" width="110" height="100">
+      ${wick(18,14,20)}${body(10,20,16,46,G)}${wick(18,66,72)}
+      ${wick(42,28,34)}${body(35,34,14,18,R)}${wick(42,52,57)}
+      ${wick(62,30,36)}${body(55,36,14,16,R)}${wick(62,52,57)}
+      ${wick(82,32,38)}${body(75,38,14,14,R)}${wick(82,52,57)}
+      ${wick(106,10,16)}${body(98,16,16,48,G)}${wick(106,64,70)}
+      ${label(62,97,'RISING 3 METHODS','#4a7ab0')}</svg>`;
+  },
+  "Falling Three Methods": ()=>{
+    return `<svg viewBox="0 0 130 100" width="110" height="100">
+      ${wick(18,14,20)}${body(10,20,16,48,R)}${wick(18,68,74)}
+      ${wick(42,28,34)}${body(35,34,14,16,G)}${wick(42,50,56)}
+      ${wick(62,30,36)}${body(55,36,14,14,G)}${wick(62,50,56)}
+      ${wick(82,32,38)}${body(75,38,14,12,G)}${wick(82,50,56)}
+      ${wick(106,12,18)}${body(98,18,16,50,R)}${wick(106,68,74)}
+      ${label(62,97,'FALLING 3 METH','#4a7ab0')}</svg>`;
+  },
+  "Upside Tasuki Gap": ()=>{
+    return `<svg viewBox="0 0 120 100" width="100" height="100">
+      ${wick(22,28,34)}${body(14,34,16,38,G)}${wick(22,72,78)}
+      ${wick(58,12,18)}${body(50,18,16,38,G)}${wick(58,56,62)}
+      ${wick(92,24,30)}${body(84,30,16,28,R)}${wick(92,58,64)}
+      ${label(58,97,'TASUKI GAP UP','#4a7ab0')}</svg>`;
+  },
+  "Downside Tasuki Gap": ()=>{
+    return `<svg viewBox="0 0 120 100" width="100" height="100">
+      ${wick(22,14,20)}${body(14,20,16,38,R)}${wick(22,58,64)}
+      ${wick(58,30,36)}${body(50,36,16,38,R)}${wick(58,74,80)}
+      ${wick(92,20,26)}${body(84,26,16,28,G)}${wick(92,54,60)}
+      ${label(58,97,'TASUKI GAP DN','#4a7ab0')}</svg>`;
+  }
+};
+
+const patterns = [
+  {name:"Hammer",type:"bull",candles:"1 candle",shape:"Small body at TOP. Long lower wick (min 2× body). Little/no upper wick.",location:"Bottom of downtrend. At key support. After a move down.",meaning:"Sellers pushed price far below open but buyers absorbed everything and closed near the high. Bullish control returning.",nextCandle:"Bullish candle closing above the hammer high = confirmed entry. Without that, it is a warning only.",winRate:"65%"},
+  {name:"Inverted Hammer",type:"bull",candles:"1 candle",shape:"Small body at BOTTOM. Long upper wick (min 2× body). Little/no lower wick.",location:"Bottom of downtrend. At support. Context is everything.",meaning:"Buyers tested higher prices but were initially rejected. At the bottom, shows buyers beginning to challenge sellers.",nextCandle:"Strong bullish candle closing above inverted hammer high required before entering.",winRate:"60%"},
+  {name:"Bullish Engulfing",type:"bull",candles:"2 candles",shape:"Large green candle completely engulfs the body of the prior red candle.",location:"At the bottom of a pullback in an uptrend. At daily/4H support zones.",meaning:"Aggressive buyers completely overwhelmed sellers. The most powerful two-candle bullish reversal signal.",nextCandle:"Enter on close of second candle. Stop below the pattern low. Strong continuation expected.",winRate:"62%"},
+  {name:"Piercing Line",type:"bull",candles:"2 candles",shape:"Strong red first candle. Second opens below prior low but closes above midpoint of first candle body.",location:"Bottom of downtrend or support zone.",meaning:"Partial buyer takeover. Sellers still in partial control but momentum is shifting.",nextCandle:"Needs third bullish candle for full confirmation.",winRate:"58%"},
+  {name:"Morning Star",type:"bull",candles:"3 candles",shape:"Large red candle → small indecision candle → large green candle closing above midpoint of candle 1.",location:"Bottom of downtrend. At major daily/weekly support.",meaning:"Classic three-stage bottom reversal. Sellers dominant → indecision → buyers take full control.",nextCandle:"Pattern itself is confirmation. Enter on close of third candle. Stop below candle 2 low.",winRate:"68%"},
+  {name:"Morning Doji Star",type:"bull",candles:"3 candles",shape:"Like Morning Star but middle candle is a Doji (open = close exactly).",location:"Bottom of downtrend at support.",meaning:"Stronger than Morning Star. Complete indecision gap followed by aggressive buyer takeover.",nextCandle:"Enter on close of third candle. Stop below doji low.",winRate:"71%"},
+  {name:"Three White Soldiers",type:"bull",candles:"3 candles",shape:"Three consecutive large green candles. Each opens within prior body and closes higher.",location:"After prolonged downtrend or at major support.",meaning:"Sustained aggressive buying across three sessions. One of the strongest reversal signals.",nextCandle:"Strong continuation. If third candle has long upper wick, expect brief pullback first.",winRate:"70%"},
+  {name:"Bullish Harami",type:"bull",candles:"2 candles",shape:"Large red candle followed by small green candle fully inside the first body.",location:"At support in downtrend. A pause signal more than full reversal.",meaning:"Selling momentum slowing. Second candle shows sellers losing conviction.",nextCandle:"Needs third bullish candle closing above the second. Confirmation required.",winRate:"55%"},
+  {name:"Bullish Harami Cross",type:"bull",candles:"2 candles",shape:"Large red candle followed by a Doji completely inside its body.",location:"At support or bottom of trend.",meaning:"Stronger version of Bullish Harami. Complete indecision — sellers have stopped, buyers not yet confirmed.",nextCandle:"Bullish candle closing above doji high = confirmed. Stop below red candle low.",winRate:"60%"},
+  {name:"Tweezer Bottom",type:"bull",candles:"2 candles",shape:"Two consecutive candles with identical or near-identical LOWS. Red then green.",location:"At support. The shared low must be at a meaningful structural level.",meaning:"Support tested twice at same price and held both times. Double rejection of lows by buyers.",nextCandle:"Enter on close of second candle. Stop just below the shared low.",winRate:"59%"},
+  {name:"Three Outside Up",type:"bull",candles:"3 candles",shape:"Bullish Harami (candles 1+2) followed by a large green candle closing above candle 2 high.",location:"Bottom of downtrend at support.",meaning:"Full three-candle confirmation of reversal. The third candle removes all doubt.",nextCandle:"Self-confirming. Enter on close of candle 3. Stop below candle 1 low.",winRate:"65%"},
+  {name:"Three Inside Up",type:"bull",candles:"3 candles",shape:"Large red → smaller green contained within it → third green closing above candle 1 high.",location:"Bottom of move at support.",meaning:"Controlled three-stage shift from bearish to bullish. More reliable than single candles.",nextCandle:"Confirmed on close of candle 3. Enter at open of candle 4.",winRate:"63%"},
+  {name:"Dragonfly Doji",type:"bull",candles:"1 candle",shape:"Open, high, and close all near TOP. Very long lower wick. Looks like a T.",location:"Bottom of downtrend or key support. One of strongest single-candle signals.",meaning:"Sellers pushed price far down but buyers completely rejected it. Extreme buying pressure at the lows.",nextCandle:"Bullish confirmation candle closing above the dragonfly high required.",winRate:"65%"},
+  {name:"Bullish Marubozu",type:"bull",candles:"1 candle",shape:"Large green candle with NO wicks. Opens at low, closes at high.",location:"Breakout points or start of new move. Shows momentum.",meaning:"Buyers dominated from open to close without pause. Uninterrupted buying pressure.",nextCandle:"If next candle holds above the close, trend continuation expected.",winRate:"62%"},
+  {name:"Bullish Belt Hold",type:"bull",candles:"1 candle",shape:"Strong green candle opening at or near the low (no lower wick). Closes near high.",location:"At support or bottom of pullback.",meaning:"Buyers controlled from the very open. Shows aggressive demand.",nextCandle:"Confirmation needed. Enter if second candle closes above belt hold high.",winRate:"58%"},
+  {name:"Shooting Star",type:"bear",candles:"1 candle",shape:"Small body at BOTTOM. Long upper wick (min 2× body). Little/no lower wick.",location:"Top of uptrend. At resistance. Mirror of Hammer.",meaning:"Buyers tried to push price up but were violently rejected by sellers.",nextCandle:"Bearish confirmation candle closing below shooting star low required.",winRate:"64%"},
+  {name:"Hanging Man",type:"bear",candles:"1 candle",shape:"Same shape as Hammer but appears at the TOP of an uptrend.",location:"Top of uptrend at resistance. Context makes it bearish.",meaning:"Significant sell-off during session. Buyers recovered but bulls are losing control.",nextCandle:"Bearish confirmation required. Close below hanging man low = reversal confirmed.",winRate:"60%"},
+  {name:"Bearish Engulfing",type:"bear",candles:"2 candles",shape:"Large red candle completely engulfs body of prior green candle.",location:"Top of uptrend or at resistance zones.",meaning:"Aggressive sellers completely overwhelmed buyers. Mirror of Bullish Engulfing.",nextCandle:"Strong bearish continuation. Stop above the red candle high.",winRate:"62%"},
+  {name:"Dark Cloud Cover",type:"bear",candles:"2 candles",shape:"Strong green first candle. Second opens above prior high but closes below first candle midpoint.",location:"Top of uptrend at resistance.",meaning:"Partial bearish takeover. Weaker than Bearish Engulfing but valid warning.",nextCandle:"Third bearish candle confirms reversal.",winRate:"57%"},
+  {name:"Evening Star",type:"bear",candles:"3 candles",shape:"Large green candle → small indecision candle → large red closing below midpoint of candle 1.",location:"Top of uptrend at resistance. Mirror of Morning Star.",meaning:"Classic top reversal. Bulls dominant → indecision → sellers take full control.",nextCandle:"Pattern is self-confirming. Enter short on close of candle 3.",winRate:"68%"},
+  {name:"Evening Doji Star",type:"bear",candles:"3 candles",shape:"Like Evening Star but middle candle is a Doji.",location:"Top of uptrend at resistance.",meaning:"Stronger than Evening Star. Complete indecision gap at the top followed by seller takeover.",nextCandle:"Enter short on close of third candle. Stop above doji high.",winRate:"71%"},
+  {name:"Three Black Crows",type:"bear",candles:"3 candles",shape:"Three consecutive large red candles. Each opens within prior body and closes lower.",location:"After uptrend or at major resistance.",meaning:"Sustained seller domination across three sessions. Mirror of Three White Soldiers.",nextCandle:"Strong bearish continuation. Watch for brief bounce before next leg down.",winRate:"70%"},
+  {name:"Bearish Harami",type:"bear",candles:"2 candles",shape:"Large green candle followed by small red candle fully inside the first body.",location:"At resistance or top of uptrend.",meaning:"Buying momentum slowing. Buyers losing conviction.",nextCandle:"Needs bearish third candle for confirmation.",winRate:"54%"},
+  {name:"Bearish Harami Cross",type:"bear",candles:"2 candles",shape:"Large green candle followed by Doji inside its body.",location:"At resistance or top of move.",meaning:"Stronger than Bearish Harami. Complete indecision at the top after bullish session.",nextCandle:"Bearish candle closing below doji low confirms reversal.",winRate:"59%"},
+  {name:"Tweezer Top",type:"bear",candles:"2 candles",shape:"Two consecutive candles with identical or near-identical HIGHS. Green then red.",location:"At resistance. The shared high must be at a meaningful structural level.",meaning:"Resistance tested twice at same price and rejected both times. Double rejection of highs.",nextCandle:"Enter short on close of second candle. Stop just above shared high.",winRate:"58%"},
+  {name:"Three Outside Down",type:"bear",candles:"3 candles",shape:"Bearish Harami (candles 1+2) followed by large red candle closing below candle 2 low.",location:"Top of uptrend at resistance.",meaning:"Full three-candle confirmation of bearish reversal.",nextCandle:"Self-confirming. Enter short on close of candle 3.",winRate:"65%"},
+  {name:"Three Inside Down",type:"bear",candles:"3 candles",shape:"Large green → smaller red contained within → third red closing below candle 1 low.",location:"Top of move at resistance.",meaning:"Controlled three-stage shift to bearish.",nextCandle:"Confirmed on close of candle 3.",winRate:"62%"},
+  {name:"Gravestone Doji",type:"bear",candles:"1 candle",shape:"Open, low, and close all near BOTTOM. Very long upper wick. Looks like upside-down T.",location:"Top of uptrend or key resistance. Mirror of Dragonfly Doji.",meaning:"Buyers pushed price far up but sellers completely overwhelmed them.",nextCandle:"Bearish confirmation candle closing below gravestone low required.",winRate:"64%"},
+  {name:"Bearish Marubozu",type:"bear",candles:"1 candle",shape:"Large red candle with NO wicks. Opens at high, closes at low.",location:"Breakdown points or acceleration of downtrend.",meaning:"Sellers dominated from open to close without any buyer pushback.",nextCandle:"If next candle stays below close, bearish continuation expected.",winRate:"62%"},
+  {name:"Bearish Belt Hold",type:"bear",candles:"1 candle",shape:"Strong red candle opening at or near the high (no upper wick). Closes near low.",location:"At resistance or top of rally.",meaning:"Sellers controlled from the very open. Shows aggressive distribution.",nextCandle:"Confirmation from second candle closing below belt hold low.",winRate:"57%"},
+  {name:"Doji",type:"neut",candles:"1 candle",shape:"Open and close virtually equal. Wicks of varying length. Forms a cross shape.",location:"Can appear anywhere. Most significant at support/resistance after a trend.",meaning:"Complete indecision. Neither buyers nor sellers won the session.",nextCandle:"Direction depends entirely on next candle. After downtrend at support = potential bullish. After uptrend at resistance = potential bearish. Never act on Doji alone.",winRate:"50% — needs context"},
+  {name:"Long-Legged Doji",type:"neut",candles:"1 candle",shape:"Open = Close in the middle. Very long upper AND lower wicks.",location:"At significant turning points or high-volatility events.",meaning:"Extreme indecision. Both sides tried aggressively and both failed. Major battle.",nextCandle:"Wait for next candle direction. Trade in the direction the market resolves.",winRate:"52% — context"},
+  {name:"Spinning Top",type:"neut",candles:"1 candle",shape:"Small body in the middle. Upper and lower wicks roughly equal.",location:"During consolidation or potential reversals.",meaning:"Mild indecision. Buyers and sellers roughly equal. Shows uncertainty.",nextCandle:"Weak alone. Requires confirmation from following candles.",winRate:"50% — confirm"},
+  {name:"High Wave",type:"neut",candles:"1 candle",shape:"Very long upper and lower shadows with a small body.",location:"Major turning points or during high-volatility news events.",meaning:"Maximum indecision and volatility. Market completely unsure of direction.",nextCandle:"Strong directional candle after a High Wave signals resolution of indecision.",winRate:"50% — indecision"},
+  {name:"Rising Three Methods",type:"cont",candles:"5 candles",shape:"Large green → three small red candles within first candle's range → large green closing above first candle high.",location:"During an uptrend. A controlled pause before continuation.",meaning:"Buyers pause briefly. Sellers try and fail to break the uptrend. Buyers return.",nextCandle:"Enter on close of fifth candle. Uptrend resumes.",winRate:"67%"},
+  {name:"Falling Three Methods",type:"cont",candles:"5 candles",shape:"Large red → three small green candles within range → large red closing below first candle low.",location:"During a downtrend. Mirror of Rising Three Methods.",meaning:"Sellers pause. Buyers attempt recovery and fail. Sellers return.",nextCandle:"Enter short on close of fifth candle. Downtrend resumes.",winRate:"67%"},
+  {name:"Upside Tasuki Gap",type:"cont",candles:"3 candles",shape:"Two bullish candles with gap between them. Third red candle partially fills but does NOT close the gap.",location:"During a strong uptrend.",meaning:"Gap = bullish momentum. Partial pullback failing to close the gap shows sellers cannot overcome buyers.",nextCandle:"If candle 4 is green and holds above the gap, strong continuation expected.",winRate:"60%"},
+  {name:"Downside Tasuki Gap",type:"cont",candles:"3 candles",shape:"Two bearish candles with gap between. Third green candle partially fills but does NOT close the gap.",location:"During a strong downtrend.",meaning:"Bearish gap shows downside momentum. Recovery failing to close gap shows buyers are weak.",nextCandle:"Bearish continuation if candle 4 resumes downward.",winRate:"60%"}
+];
+
+let currentFilter='all';
+
+function buildCards(){
+  const container=document.getElementById('cards-container');
+  container.innerHTML='';
+  const search=document.getElementById('search').value.toLowerCase();
+  let visible=0;
+  patterns.forEach((p,i)=>{
+    const matchF=currentFilter==='all'||p.type===currentFilter;
+    const matchS=search===''||p.name.toLowerCase().includes(search)||p.meaning.toLowerCase().includes(search);
+    if(!matchF||!matchS)return;
+    visible++;
+    const div=document.createElement('div');
+    div.className=`candle-card ${p.type}`;div.id=`c${i}`;
+    const tl={bull:'BULL',bear:'BEAR',neut:'NEUTRAL',cont:'CONTINUE'};
+    const tc={bull:'type-bull',bear:'type-bear',neut:'type-neut',cont:'type-cont'};
+    const wr=parseFloat(p.winRate);
+    const wc=wr>=65?'green':wr>=58?'amber':'red';
+    const svgHtml=(svgs[p.name]&&svgs[p.name]())||`<svg viewBox="0 0 80 80" width="60" height="60"><text x="40" y="44" fill="#5a5856" font-size="10" text-anchor="middle">—</text></svg>`;
+    div.innerHTML=`
+      <div class="candle-header" onclick="tog('c${i}')">
+        <span class="candle-type ${tc[p.type]}">${tl[p.type]}</span>
+        <span class="candle-name">${p.name}</span>
+        <span class="candle-candles">${p.candles}</span>
+        <span class="candle-chevron">▶</span>
+      </div>
+      <div class="candle-body">
+        <div class="candle-body-inner">
+          <div class="body-grid">
+            <div class="svg-panel">${svgHtml}</div>
+            <div class="info-grid">
+              <div class="info-block"><div class="info-label">Shape</div><div class="info-text">${p.shape}</div></div>
+              <div class="info-block"><div class="info-label">Where to find it</div><div class="info-text">${p.location}</div></div>
+              <div class="info-block"><div class="info-label">Psychology</div><div class="info-text">${p.meaning}</div></div>
+              <div class="stat-row">
+                <div class="stat-box"><div class="stat-val ${wc}">${p.winRate}</div><div class="stat-name">Win Rate</div></div>
+                <div class="stat-box"><div class="stat-val" style="color:var(--text2)">${p.candles}</div><div class="stat-name">Candles</div></div>
+              </div>
+            </div>
+          </div>
+          <div class="next-box"><div class="next-label">Next candle — when to act</div><div class="next-text">${p.nextCandle}</div></div>
+        </div>
+      </div>`;
+    container.appendChild(div);
+  });
+  document.getElementById('count-label').textContent=`Showing ${visible} pattern${visible!==1?'s':''}`;
+}
+
+function tog(id){document.getElementById(id).classList.toggle('open');}
+function setFilter(f,btn){
+  currentFilter=f;
+  document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  buildCards();
+}
+function showPanel(id,btn){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('panel-'+id).classList.add('active');
+  btn.classList.add('active');
+}
+buildCards();
+</script>
+</body>
+</html>
